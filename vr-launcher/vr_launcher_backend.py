@@ -5,8 +5,13 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
+import urllib.parse
+import urllib.request
+import zipfile
 import vr_language
 
 
@@ -107,6 +112,107 @@ def launch(root, protection, cancel_file=None, runner=subprocess.run, diagnostic
     return record['pid']
 
 
+class ReleaseAssetRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, new_url):
+        url = urllib.parse.urlsplit(new_url)
+        if (url.scheme != 'https' or url.netloc not in
+                ('github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com')):
+            raise ValueError('Unexpected launcher download redirect.')
+        return super().redirect_request(request, fp, code, message, headers, new_url)
+
+
+def download_launcher(update, destination, cancel, notify):
+    opener = urllib.request.build_opener(ReleaseAssetRedirect())
+    request = urllib.request.Request(update['launcher_url'], headers={'User-Agent': 'Darkwatch-Darker-VR'})
+    expected = update['launcher_size']
+    total = 0
+    with opener.open(request, timeout=20) as response, destination.open('xb') as output:
+        while True:
+            cancel()
+            data = response.read(min(1024 * 1024, expected - total + 1))
+            if not data:
+                break
+            total += len(data)
+            if total > expected:
+                raise ValueError('Launcher download exceeds its published size.')
+            output.write(data)
+            notify('progress', 'Downloading launcher update', percent=80 * total / expected)
+    if total != expected or digest(destination) != update['launcher_sha256']:
+        raise ValueError('Launcher download did not match its published checksum.')
+
+
+def extract_launcher(archive, destination, layer, cancel):
+    allowed = layer.REQUIRED | layer.LANGUAGE_PAYLOAD | {'bundle.json'}
+    with zipfile.ZipFile(archive) as source:
+        members = source.infolist()
+        names = {entry.filename for entry in members}
+        if (len(names) != len(members) or names - allowed or
+                sum(entry.file_size for entry in members) > 128 * 1024 * 1024):
+            raise ValueError('Unexpected launcher update archive contents.')
+        destination.mkdir()
+        for entry in members:
+            cancel()
+            path = layer.safe(destination, entry.filename, exists=False)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with source.open(entry) as data, path.open('xb') as output:
+                shutil.copyfileobj(data, output)
+    return layer.validate_bundle(destination)
+
+
+def install_launcher_update(root, package, protection, diagnostics, cancel, notify):
+    import release_check
+    verify(root, protection)
+    manager = regular(root, 'tools/vr_launcher_layers.py')
+    if digest(manager) != protection['files']['tools/vr_launcher_layers.py']:
+        raise ValueError('The installed launcher update manager does not match its binding.')
+    sys.path.insert(0, str(manager.parent))
+    try:
+        import vr_launcher_layers as layer
+    finally:
+        sys.path.pop(0)
+    with vr_language.operation(root):
+        current = layer.validate_active(root)
+        if Path(current['entry']).parent != package:
+            raise ValueError('This launcher is no longer active. Reopen it before updating.')
+        update = release_check.check(package.name, vr=True)
+        if not update.get('launcher_update'):
+            raise ValueError('No verified launcher-only download is available.')
+        version = layer.version(update['latest_version'])
+        target = layer.safe(root, 'launcher-ui/versions/' + version, exists=False)
+        if target.exists():
+            raise ValueError('This launcher version already exists. Use launcher rollback or activation.')
+        with tempfile.TemporaryDirectory(prefix='vr-update-', dir=root / 'launcher-ui') as directory:
+            work = Path(directory)
+            archive, bundle = work / 'launcher.zip', work / 'bundle'
+            download_launcher(update, archive, cancel, notify)
+            if extract_launcher(archive, bundle, layer, cancel)['version'] != version:
+                raise ValueError('Launcher bundle version does not match the release.')
+            cancel()
+            vr_language.require_closed()
+            notify('progress', 'Verifying and installing launcher files', percent=85)
+            switched = False
+            try:
+                layer.install(root, bundle, apply=True)
+                switched = True
+                cancel()
+                if diagnostics.is_file():
+                    state = target / 'State'
+                    state.mkdir()
+                    (state / '.diagnostic-logging').touch()
+                entry = layer.validate_active(root)['entry']
+                subprocess.Popen([entry], cwd=target, stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                if switched:
+                    layer.activate(root, package.name)
+                if target.exists():
+                    failed = layer.safe(root, 'launcher-ui/versions/' + version).resolve()
+                    if failed.parent == (root / 'launcher-ui/versions').resolve():
+                        shutil.rmtree(failed)
+                raise
+    notify('release_ready', 'Launcher updated. Your VR installation was preserved.', percent=100)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--package', type=Path, required=True)
@@ -143,6 +249,10 @@ def main(argv=None):
 
         def notify(event, message, **fields):
             print(json.dumps(dict(event=event, message=message, **fields)), flush=True)
+
+        if args.download_update:
+            install_launcher_update(root, args.package, protection, diagnostics, cancel, notify)
+            return 0
 
         install_code, iso = next(((code, iso) for code, iso in (
             ('es', args.install_spanish), ('fr', args.install_french),
@@ -182,7 +292,7 @@ def main(argv=None):
             result['message'] = 'Language installed. Select it before starting VR.'
         print(json.dumps(dict(result, event='status' if args.status else 'result', percent=100)))
         return 0
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as error:
         print(json.dumps(dict(event='error', ready=False, message=str(error))))
         return 1
 

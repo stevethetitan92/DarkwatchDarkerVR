@@ -36,6 +36,7 @@ namespace DarkwatchDarkerEdition
         bool busy, installed, ready, updateAvailable, closing, cancelRequested, hdTexturesInstalled, spanishInstalled, spanishAudioInstalled, portugueseInstalled, frenchInstalled, germanInstalled, italianInstalled, updatingLanguage;
         string language = "en", sourceMode = "extracted";
         bool diagnosticLogging;
+        bool launcherUpdate;
         string cancelFile, gameDirectory, diagnosticsDirectory;
         readonly Action cancelPreparation;
         bool checkingRelease, startupStarted, windowClosed, completeUpdate, manageOpen, sourceOpen, releaseRequested, freshStatus;
@@ -161,7 +162,7 @@ namespace DarkwatchDarkerEdition
                 if (!ValidReleaseUrl(releaseUrl, latestRelease, vr)) {
                     releaseStatus = "unavailable"; releaseUrl = null; SetReleaseStatus(); return;
                 }
-                if (vr) {
+                if (vr && !launcherUpdate) {
                     try { Process.Start(new ProcessStartInfo { FileName = releaseUrl, UseShellExecute = true }); }
                     catch (System.ComponentModel.Win32Exception) {
                         releaseStatus = "unavailable"; SetReleaseStatus();
@@ -338,8 +339,10 @@ namespace DarkwatchDarkerEdition
             Get<Button>("CheckUpdatesButton").ToolTip = Copy("Check GitHub for a newer Windows release. This does not change your installation.", "Busca una versión más reciente para Windows en GitHub. No modifica tu instalación.");
             if (SetupProcess.IsVrPackage(package)) {
                 Get<StackPanel>("VrCredits").Visibility = Visibility.Visible;
-                Get<Button>("ReleaseButton").Content = "VIEW VR RELEASE";
-                Get<Button>("ReleaseButton").ToolTip = "Open the release on the DarkwatchDarkerVR GitHub repository.";
+                Get<Button>("ReleaseButton").Content = launcherUpdate ? "INSTALL LAUNCHER UPDATE" : "VIEW VR RELEASE";
+                Get<Button>("ReleaseButton").ToolTip = launcherUpdate
+                    ? "Install the verified launcher update and reopen the launcher. Close the game first."
+                    : "Open the release on the DarkwatchDarkerVR GitHub repository.";
                 Get<Button>("CheckUpdatesButton").ToolTip = "Check the DarkwatchDarkerVR GitHub repository for a newer VR release.";
             }
             Get<TextBlock>("ReleaseStatus").Text = checkingRelease ? Copy("Checking for updates…", "Buscando actualizaciones…")
@@ -382,13 +385,15 @@ namespace DarkwatchDarkerEdition
             } catch (Exception) { }
             finally { checkingRelease = false; }
             if (windowClosed) return;
-            releaseStatus = "unavailable"; releaseUrl = null; latestRelease = null;
-            object status, version, url;
+            releaseStatus = "unavailable"; releaseUrl = null; latestRelease = null; launcherUpdate = false;
+            object status, version, url, canInstall;
             if (result != null && result.TryGetValue("status", out status)) {
                 if (Object.Equals(status, "current")) releaseStatus = "current";
                 else if (Object.Equals(status, "available") && result.TryGetValue("latest_version", out version) &&
                          result.TryGetValue("release_url", out url) && ValidReleaseUrl(url as string, version as string, SetupProcess.IsVrPackage(package))) {
                     releaseStatus = "available"; latestRelease = (string)version; releaseUrl = (string)url;
+                    launcherUpdate = SetupProcess.IsVrPackage(package) &&
+                        result.TryGetValue("launcher_update", out canInstall) && Object.Equals(canInstall, true);
                 }
             }
             SetReleaseStatus();

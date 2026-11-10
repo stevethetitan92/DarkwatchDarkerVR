@@ -9,6 +9,7 @@ REPOSITORY = 'https://github.com/linkssy2/DarkwatchDarkerEdition'
 API_URL = 'https://api.github.com/repos/linkssy2/DarkwatchDarkerEdition/releases?per_page=30'
 VR_REPOSITORY = 'https://github.com/stevethetitan92/DarkwatchDarkerVR'
 VR_API_URL = 'https://api.github.com/repos/stevethetitan92/DarkwatchDarkerVR/releases?per_page=30'
+VR_MAX_LAUNCHER_BYTES = 64 * 1024 * 1024
 TIMEOUT = 5
 MAX_BYTES = 2 * 1024 * 1024
 SUFFIX = {'windows': 'Windows-x64.zip', 'linux': 'Linux-Proton-Experimental.tar.gz'}
@@ -102,11 +103,27 @@ def select_vr_release(releases, current_version, platform):
         number = vr_version(label)
         page = VR_REPOSITORY + '/releases/tag/' + tag
         if number is not None and release.get('html_url') == page:
-            choices.append((number, label, page))
+            choices.append((number, label, page, release))
     if choices:
-        number, latest, page = max(choices)
+        number, latest, page, release = max(choices, key=lambda choice: choice[0])
         if number > current:
-            return result('available', current_version, platform, latest_version=latest, release_url=page)
+            update = {}
+            if platform == 'windows':
+                name = f'Darkwatch-Darker-VR-Launcher-{latest}-Windows-x64.zip'
+                url = f'{VR_REPOSITORY}/releases/download/v{latest}/{name}'
+                assets = release.get('assets')
+                for asset in assets if isinstance(assets, list) else []:
+                    if not isinstance(asset, dict):
+                        continue
+                    size, digest = asset.get('size'), asset.get('digest')
+                    if (asset.get('name') == name and asset.get('browser_download_url') == url and
+                            asset.get('state') == 'uploaded' and type(size) is int and
+                            0 < size <= VR_MAX_LAUNCHER_BYTES and isinstance(digest, str) and
+                            re.fullmatch(r'sha256:[0-9a-f]{64}', digest)):
+                        update = dict(launcher_update=True, launcher_url=url, launcher_size=size,
+                                      launcher_sha256=digest[7:])
+                        break
+            return result('available', current_version, platform, latest_version=latest, release_url=page, **update)
     return result('current', current_version, platform)
 
 

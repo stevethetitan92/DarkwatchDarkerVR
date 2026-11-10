@@ -205,3 +205,10 @@ Pass `-Open` to open the launcher. Use **Manage** for diagnostics and language
 installation. Close the game before installing or switching languages. Use your
 supported PAL PS2 disc image for Spanish, French, German or Italian, or select
 the bundled Brazilian Portuguese text adaptation.
+
+For in-launcher updates, attach a launcher-only ZIP to the matching release in
+the VR repository. Name it `Darkwatch-Darker-VR-Launcher-<version>-Windows-x64.zip`
+and place `bundle.json` and the bundle files at the ZIP root. The launcher checks
+the GitHub asset digest and the bundle manifest, then activates a new launcher
+directory. Full first-install downloads stay separate. Close the game before
+applying the update.
