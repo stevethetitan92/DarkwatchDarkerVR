@@ -1,5 +1,11 @@
 # Credits
 
+## DARKWATCH DARKER EDITION PC PORT BY LINKSSY2
+
+[Linkssy2’s Darkwatch: Darker Edition](https://github.com/linkssy2/DarkwatchDarkerEdition) provides the PC port and the upstream launcher foundation.
+
+## UPSTREAM CONTRIBUTORS AND THIRD-PARTY CREDITS
+
 - **[@brandonsoto](https://github.com/brandonsoto):** Steam Deck and live Linux
   testing, with feedback helping improve the Linux/Proton experience.
 

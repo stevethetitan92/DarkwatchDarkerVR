@@ -175,3 +175,33 @@ The existing five-part 0.7 optional HD download remains compatible. It is not
 included here; do not rebuild or redownload it merely for this runtime update.
 The current release build excludes development-only activation paths and defaults
 diagnostics to off. Follow the explicit `-Release` command for player packages.
+
+## Build the Windows VR launcher
+
+The optional VR launcher layer uses the upstream 0.7.8 launcher design. It is a
+separate build from the native runtime and requires a prepared VR installation
+with its VR launch profile, runtime and manifest. Use Windows x64, .NET Framework
+with the C# compiler and WPF assemblies, Python 3.12, and the unpacked Windows
+x64 Python 3.12 embeddable distribution.
+
+```powershell
+py -3.12 -B vr-launcher/build.py --python-dir 'C:/path/to/embedded-python' --output 'C:/staging/0.7.8-vr2'
+```
+
+The output directory must be new. The bundle includes a manifest of file hashes
+and the launcher and language helper payloads. It excludes the VR runtime, disc
+assets and HD pack. On a separate, backed-up VR installation, place
+`Open-VR-Launcher.ps1` in the install root and `vr_launcher_layers.py` in its
+`tools` directory when setting up the protection binding. If a binding already
+exists, keep its pinned scripts and use the installed manager. Review the bundle
+first, then apply it using the same command with `--apply`.
+
+```powershell
+py -3.12 -B 'C:/VR/tools/vr_launcher_layers.py' --root 'C:/VR' --bundle 'C:/staging/0.7.8-vr2'
+```
+
+Run `Open-VR-Launcher.ps1` without arguments to verify the active bundle.
+Pass `-Open` to open the launcher. Use **Manage** for diagnostics and language
+installation. Close the game before installing or switching languages. Use your
+supported PAL PS2 disc image for Spanish, French, German or Italian, or select
+the bundled Brazilian Portuguese text adaptation.

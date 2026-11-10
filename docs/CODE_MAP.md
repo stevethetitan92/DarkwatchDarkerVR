@@ -52,3 +52,14 @@ records, saves, language content and compatible HD resources.
 Use the Release profile for player builds. Optional diagnostic support and required
 fatal-error handling remain available. A successful source test or compilation is
 not proof of complete campaign, visual, audio or Linux gameplay acceptance.
+
+## Windows VR launcher layer
+
+| Location | Purpose |
+| --- | --- |
+| `vr-launcher/Launcher.cs`, `MainWindow.xaml` | WPF launcher, VR status, language management and diagnostic logging toggle. |
+| `vr-launcher/SetupProcess.cs`, `DirectPlay.cs` | Route launcher actions and direct play to the bound VR backend. |
+| `vr-launcher/vr_launcher_backend.py` | Verify the bound runtime and start the preserved VR launch profile. |
+| `vr-launcher/vr_language.py` | Install verified language overlays and select text language while the game is closed. |
+| `vr-launcher/release_check.py` | Discover VR launcher updates from the VR repository. |
+| `vr-launcher/build.py`, `vr_launcher_layers.py`, `Open-VR-Launcher.ps1` | Build, verify, activate and open versioned launcher bundles. |
