@@ -1,45 +1,40 @@
-name: Bug report
-description: "Report a problem with Darkwatch: Darker Edition."
+name: Darkwatch Darker VR bug report
+description: Report a problem with the Darkwatch Darker VR mod or VR launcher.
+title: "[VR Bug] "
 body:
   - type: markdown
     attributes:
       value: |
-        Please check existing issues first. Share what you know; logs and attachments are optional.
+        This form files an issue in DarkwatchDarkerVR. Please check [existing VR issues](https://github.com/stevethetitan92/DarkwatchDarkerVR/issues) first.
         Reports are public. Review logs for personal information before attaching them, and do not upload ISOs or game files.
   - type: input
     id: version
     attributes:
-      label: Game version
-      description: The Darker Edition version shown in the launcher, or the test build name.
-      placeholder: e.g. 0.7.7
+      label: VR launcher and game build
+      description: Include the launcher version and the VR game build or test build name, if known.
+      placeholder: e.g. launcher 0.7.8-vr2, VR game build 0.7.6
     validations:
       required: true
-  - type: dropdown
-    id: platform
+  - type: input
+    id: vr_setup
     attributes:
-      label: Platform
-      options:
-        - Windows
-        - Linux desktop / Proton
-        - Steam Deck / SteamOS
-        - Other
-    validations:
-      required: true
+      label: Headset and OpenXR setup
+      description: Include your headset, active OpenXR runtime, and how the headset connects to the PC.
+      placeholder: e.g. Quest 3, VirtualDesktopXR, wireless Virtual Desktop
   - type: input
     id: system
     attributes:
       label: System details
-      description: If known, include your OS version, GPU, and Proton version on Linux or Steam Deck.
-      placeholder: e.g. Windows 11, RTX 4070; or SteamOS, Proton Experimental
+      description: If known, include your Windows version and GPU.
+      placeholder: e.g. Windows 11, RTX 4070
   - type: dropdown
     id: installation
     attributes:
       label: How was this version installed?
       options:
         - Fresh installation
-        - Launcher's Install Update button
-        - Linux launcher update
-        - Manually copied an update over an existing installation
+        - Launcher-only bundle update
+        - Manually merged or copied files
         - Other / not sure
   - type: input
     id: update_details
@@ -49,8 +44,8 @@ body:
   - type: input
     id: input
     attributes:
-      label: Controls
-      description: Keyboard/mouse or controller model? For Steam, include the Steam Input layout if known. For controller problems, say whether it was connected before launch or plugged in later.
+      label: VR controllers
+      description: For input or tracking issues, include the controller model and whether both controllers were tracked when the issue occurred.
   - type: textarea
     id: steps
     attributes:
@@ -80,7 +75,7 @@ body:
     id: settings
     attributes:
       label: Relevant settings
-      description: If relevant, include single-player/co-op, selected character, camera mode, FPS limit, HD settings, or other options involved.
+      description: If relevant, include the weapon, camera mode, headset refresh rate, HD textures, or other settings involved.
   - type: textarea
     id: evidence
     attributes:

@@ -8,7 +8,7 @@ This repository includes the upstream 0.7.8 port source and a separate Windows V
 
 See [building](docs/BUILDING.md), [code map](docs/CODE_MAP.md) and [credits](CREDITS.md).
 
-[Report a bug or issue](https://github.com/stevethetitan92/DarkwatchDarkerVR/issues/new?template=bug_report.yml).
+[Report a VR bug or issue](https://github.com/stevethetitan92/DarkwatchDarkerVR/issues/new?template=bug_report.yml).
 
 Supply your own supported original Xbox disc. This is the maintained host integration and pinned SDK patch, not the original game source. Original game files, generated game C++, saves, caches and private gameplay captures are absent. The official runtime is built with `./scripts/build-xbexbe.ps1 -Release` after the initial dependency build described in BUILDING.md. Keep the Release profile for player packages; development-only code paths are not shipped features.
 
